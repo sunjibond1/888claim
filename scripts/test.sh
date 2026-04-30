@@ -7,4 +7,5 @@ cd "$PROJECT_ROOT"
 
 export PYTHONPATH="${PROJECT_ROOT}:${PYTHONPATH:-}"
 
+"$APP_DIR/scripts/build-privy.sh"
 python3 -m unittest claim888.tests.test_backend claim888.tests.test_config -v

@@ -16,4 +16,5 @@ export CLAIM888_HOST="${CLAIM888_HOST:-0.0.0.0}"
 export CLAIM888_PORT="${CLAIM888_PORT:-8123}"
 export PYTHONPATH="${PROJECT_ROOT}:${PYTHONPATH:-}"
 
+"$APP_DIR/scripts/build-privy.sh"
 exec python3 -m claim888.server

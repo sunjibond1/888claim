@@ -9,8 +9,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Jersey+25&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/claim888/styles.css" />
     <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.5/dist/ethers.umd.min.js"></script>
-    <script src="/claim888/walletconnect-shim.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@walletconnect/ethereum-provider@2.11.0/dist/index.umd.js"></script>
   </head>
   <body>
     <div class="page-shell">
@@ -59,11 +57,9 @@
       <div class="modal-panel">
         <button class="modal-close" data-close="walletModal">×</button>
         <h2>Connect wallet</h2>
-        <p class="modal-copy">Choose your wallet to connect to SCOR Claiming Hub.</p>
+        <p class="modal-copy">Connect with Privy to create or restore your wallet on Base.</p>
         <div class="wallet-options">
-          <button class="option-button" data-wallet="metamask">MetaMask</button>
-          <button class="option-button" data-wallet="walletconnect">WalletConnect</button>
-          <button class="option-button" data-wallet="base">Base App</button>
+          <button class="option-button" data-wallet="privy">Continue with Privy</button>
         </div>
         <p class="modal-note">Network required: Base</p>
       </div>
@@ -79,7 +75,8 @@
       </div>
     </div>
 
-    <script src="/claim888/wallet-utils.js"></script>
+    <script src="/claim888/privy-utils.js"></script>
+    <script src="/claim888/vendor/privy.bundle.js"></script>
     <script src="/claim888/app.js"></script>
   </body>
 </html>

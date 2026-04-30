@@ -7,7 +7,8 @@ Type=simple
 WorkingDirectory=/opt/scor/AI/SCOR
 Environment=CLAIM888_HOST=0.0.0.0
 Environment=CLAIM888_PORT=8123
-# Environment=WALLETCONNECT_PROJECT_ID=replace_me
+# Environment=PRIVY_APP_ID=replace_me
+# Environment=PRIVY_CLIENT_ID=replace_me_if_needed
 ExecStart=/opt/scor/AI/SCOR/website/claim888/scripts/start.sh
 Restart=always
 RestartSec=5

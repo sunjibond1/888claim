@@ -5,7 +5,9 @@ const state = {
   eligible: false,
   claimed: false,
   gems: 0,
-  walletConnectProjectId: '',
+  privyAppId: '',
+  privyClientId: '',
+  pendingEmail: '',
 };
 
 const headerConnectButton = document.getElementById('headerConnectButton');
@@ -16,14 +18,16 @@ const statusCard = document.getElementById('statusCard');
 const successCopy = document.getElementById('successCopy');
 
 const BASE_CHAIN_ID = 8453;
-const BASE_HEX = '0x2105';
 
 async function loadRuntimeConfig() {
   try {
     const response = await fetch('/api/config');
     if (!response.ok) return;
     const payload = await response.json();
-    state.walletConnectProjectId = payload.walletConnectProjectId || '';
+    state.privyAppId = payload.privyAppId || '';
+    state.privyClientId = payload.privyClientId || '';
+    state.chainId = payload.baseChainId || BASE_CHAIN_ID;
+    window.__CLAIM888_CONFIG__ = payload;
   } catch (error) {
     console.warn('Config load failed', error);
   }
@@ -69,131 +73,154 @@ function updateConnectedUi() {
   mainActionButton.textContent = 'Check eligibility';
 }
 
-async function ensureBaseNetwork(provider, mode = 'metamask') {
+function renderEmailOtpPrompt(step = 'email', helperCopy = '') {
+  const title = step === 'email' ? 'Continue with Privy via email' : 'Enter the 6-digit code';
+  const subtitle = step === 'email'
+    ? 'Guest login is disabled for this Privy app, so we’ll send a login code to your email instead.'
+    : `We sent a code to ${state.pendingEmail}. Enter it to finish connecting your Privy wallet.`;
+  const emailValue = state.pendingEmail ? `value="${state.pendingEmail}"` : '';
+  walletModal.querySelector('.modal-panel').innerHTML = `
+    <button class="modal-close" data-close="walletModal">×</button>
+    <h2>${title}</h2>
+    <p class="modal-copy">${subtitle}</p>
+    <div class="wallet-options otp-flow">
+      ${step === 'email' ? `
+        <input id="privyEmailInput" class="wallet-input" type="email" placeholder="you@example.com" ${emailValue} />
+        <button id="privySendCodeButton" class="option-button">Send code</button>
+      ` : `
+        <input id="privyCodeInput" class="wallet-input" type="text" inputmode="numeric" placeholder="123456" />
+        <button id="privyVerifyCodeButton" class="option-button">Verify code</button>
+      `}
+      <button id="privyBackButton" class="secondary-button" type="button">Back</button>
+    </div>
+    <p class="modal-note">${helperCopy || 'Network required: Base'}</p>
+  `;
+
+  walletModal.querySelectorAll('[data-close]').forEach((element) => {
+    element.addEventListener('click', () => hideModal(document.getElementById(element.dataset.close)));
+  });
+
+  const backButton = document.getElementById('privyBackButton');
+  backButton?.addEventListener('click', () => renderDefaultWalletPrompt());
+
+  if (step === 'email') {
+    document.getElementById('privySendCodeButton')?.addEventListener('click', submitPrivyEmail);
+  } else {
+    document.getElementById('privyVerifyCodeButton')?.addEventListener('click', submitPrivyOtp);
+  }
+}
+
+function renderDefaultWalletPrompt() {
+  walletModal.querySelector('.modal-panel').innerHTML = `
+    <button class="modal-close" data-close="walletModal">×</button>
+    <h2>Connect wallet</h2>
+    <p class="modal-copy">Connect with Privy to create or restore your wallet on Base.</p>
+    <div class="wallet-options">
+      <button class="option-button" data-wallet="privy">Continue with Privy</button>
+    </div>
+    <p class="modal-note">Network required: Base</p>
+  `;
+
+  walletModal.querySelectorAll('[data-close]').forEach((element) => {
+    element.addEventListener('click', () => hideModal(document.getElementById(element.dataset.close)));
+  });
+
+  walletModal.querySelectorAll('.option-button').forEach((button) => {
+    button.addEventListener('click', async () => {
+      const wallet = button.dataset.wallet;
+      try {
+        if (wallet === 'privy') await connectPrivy();
+      } catch (error) {
+        if (error?.code === 'PRIVY_EMAIL_OTP_REQUIRED' || window.privyUtils.shouldUseEmailOtp(error)) {
+          renderEmailOtpPrompt('email', 'Guest accounts are disabled in this Privy app, so use email OTP instead.');
+          return;
+        }
+        setStatus({ tone: 'error', label: 'Wallet', title: 'Connection failed', copy: error.message || 'Please try again.' });
+        hideModal(walletModal);
+      }
+    });
+  });
+}
+
+async function finalizePrivyConnection(result) {
+  const provider = new ethers.BrowserProvider(result.provider);
   const network = await provider.getNetwork();
-  state.chainId = Number(network.chainId);
-  if (state.chainId === BASE_CHAIN_ID) return true;
-  try {
-    if (mode === 'walletconnect' && provider.provider?.request) {
-      await provider.provider.request({
-        method: 'wallet_switchEthereumChain',
-        params: [{ chainId: BASE_HEX }],
-      });
-    } else {
-      await window.ethereum.request({
-        method: 'wallet_switchEthereumChain',
-        params: [{ chainId: BASE_HEX }],
-      });
-    }
-    state.chainId = BASE_CHAIN_ID;
-    return true;
-  } catch (error) {
+  const chainId = Number(network.chainId);
+  if (chainId !== BASE_CHAIN_ID) {
     setStatus({
       tone: 'error',
       label: 'Network',
-      title: 'Switch to Base to continue',
-      copy: 'Please switch your wallet network to Base before checking eligibility.',
+      title: 'Privy wallet is not on Base',
+      copy: 'Your Privy wallet must be connected to Base before you can continue.',
     });
-    return false;
-  }
-}
-
-async function connectMetaMask() {
-  const injectedProvider = window.walletUtils?.pickMetaMaskProvider(window.ethereum);
-  if (!injectedProvider) {
-    setStatus({
-      tone: 'error',
-      label: 'Wallet',
-      title: 'MetaMask not detected',
-      copy: 'MetaMask extension was not found. If you only have OKX/Coinbase installed, use WalletConnect or install MetaMask.',
-    });
+    hideModal(walletModal);
     return;
   }
-  const provider = new ethers.BrowserProvider(injectedProvider);
-  const accounts = await provider.send('eth_requestAccounts', []);
-  state.walletAddress = accounts[0];
-  state.walletType = 'MetaMask';
-  const isReady = await ensureBaseNetwork(provider, 'metamask');
+
+  state.walletAddress = result.walletAddress;
+  state.walletType = result.walletType;
+  state.chainId = chainId;
   hideModal(walletModal);
   updateConnectedUi();
-  if (isReady) {
-    setStatus({ tone: 'pending', label: 'Wallet connected', title: 'Ready to check eligibility', copy: 'Your wallet is connected. Click “Check eligibility” to continue.' });
-  }
-}
-
-function connectBaseApp() {
-  const baseAppLink = window.walletUtils?.buildBaseAppUrl(window.location.href);
-  if (!baseAppLink?.ok) {
-    setStatus({
-      tone: 'pending',
-      label: 'Base App',
-      title: 'Base App needs a public URL',
-      copy: baseAppLink?.message || 'Open this page from a public HTTPS URL to continue in Base App.',
-    });
-    hideModal(walletModal);
-    return;
-  }
-  window.location.href = baseAppLink.url;
-}
-
-async function connectWalletConnect() {
-  if (!state.walletConnectProjectId) {
-    setStatus({
-      tone: 'pending',
-      label: 'WalletConnect',
-      title: 'WalletConnect needs a project ID',
-      copy: 'Add WALLETCONNECT_PROJECT_ID to enable the QR modal flow. For now, use MetaMask on desktop or Base App on mobile.',
-    });
-    hideModal(walletModal);
-    return;
-  }
-
-  const wcNamespace = window['@walletconnect/ethereum-provider'];
-  const EthereumProvider = wcNamespace?.EthereumProvider || wcNamespace?.default || wcNamespace;
-  if (!EthereumProvider?.init) {
-    setStatus({
-      tone: 'error',
-      label: 'WalletConnect',
-      title: 'WalletConnect library unavailable',
-      copy: 'The WalletConnect provider did not load correctly. Please use MetaMask or Base App for now.',
-    });
-    hideModal(walletModal);
-    return;
-  }
-
-  const wcProvider = await EthereumProvider.init({
-    projectId: state.walletConnectProjectId,
-    chains: [BASE_CHAIN_ID],
-    optionalChains: [BASE_CHAIN_ID],
-    showQrModal: true,
-    methods: ['eth_sendTransaction', 'personal_sign', 'eth_signTypedData', 'eth_signTypedData_v4'],
-    optionalMethods: ['wallet_switchEthereumChain', 'wallet_addEthereumChain'],
-    rpcMap: {
-      [BASE_CHAIN_ID]: 'https://mainnet.base.org',
-    },
-    metadata: {
-      name: 'SCOR Claiming Hub',
-      description: 'Check SCOR 888 campaign eligibility',
-      url: window.location.origin,
-      icons: [`${window.location.origin}/logo/scor-logo-dark.svg`],
-    },
+  setStatus({
+    tone: 'pending',
+    label: 'Wallet connected',
+    title: 'Ready to check eligibility',
+    copy: 'Your Privy wallet is connected. Click “Check eligibility” to continue.',
   });
+}
 
-  await wcProvider.enable();
-  const provider = new ethers.BrowserProvider(wcProvider);
-  const signer = await provider.getSigner();
-  state.walletAddress = await signer.getAddress();
-  state.walletType = 'WalletConnect';
-  const isReady = await ensureBaseNetwork(provider, 'walletconnect');
-  hideModal(walletModal);
-  updateConnectedUi();
-  if (isReady) {
+async function connectPrivy() {
+  if (!state.privyAppId) {
     setStatus({
-      tone: 'pending',
-      label: 'Wallet connected',
-      title: 'Ready to check eligibility',
-      copy: 'Your wallet is connected. Click “Check eligibility” to continue.',
+      tone: 'error',
+      label: 'Privy',
+      title: 'Privy is not configured yet',
+      copy: 'Add PRIVY_APP_ID to enable Privy wallet login for this site.',
     });
+    hideModal(walletModal);
+    return;
+  }
+
+  if (!window.Claim888Privy?.connectPrivyWallet) {
+    setStatus({
+      tone: 'error',
+      label: 'Privy',
+      title: 'Privy bundle unavailable',
+      copy: 'The Privy browser bundle did not load correctly. Please refresh and try again.',
+    });
+    hideModal(walletModal);
+    return;
+  }
+
+  const result = await window.Claim888Privy.connectPrivyWallet();
+  await finalizePrivyConnection(result);
+}
+
+async function submitPrivyEmail() {
+  const email = document.getElementById('privyEmailInput')?.value?.trim() || '';
+  if (!window.privyUtils.isValidEmail(email)) {
+    renderEmailOtpPrompt('email', 'Enter a valid email address.');
+    return;
+  }
+
+  state.pendingEmail = email;
+  await window.Claim888Privy.startPrivyEmailOtp(email);
+  renderEmailOtpPrompt('code', 'We sent a 6-digit code to your email.');
+}
+
+async function submitPrivyOtp() {
+  const code = window.privyUtils.normalizeOtpCode(document.getElementById('privyCodeInput')?.value || '');
+  if (code.length < 4) {
+    renderEmailOtpPrompt('code', 'Enter the full code from your email.');
+    return;
+  }
+
+  try {
+    const result = await window.Claim888Privy.verifyPrivyEmailOtp(state.pendingEmail, code);
+    await finalizePrivyConnection(result);
+  } catch (error) {
+    renderEmailOtpPrompt('code', error.message || 'Verification failed. Try the code again.');
   }
 }
 
@@ -264,32 +291,5 @@ document.querySelectorAll('[data-close]').forEach((element) => {
   element.addEventListener('click', () => hideModal(document.getElementById(element.dataset.close)));
 });
 
-document.querySelectorAll('.option-button').forEach((button) => {
-  button.addEventListener('click', async () => {
-    const wallet = button.dataset.wallet;
-    try {
-      if (wallet === 'metamask') await connectMetaMask();
-      if (wallet === 'base') connectBaseApp();
-      if (wallet === 'walletconnect') await connectWalletConnect();
-    } catch (error) {
-      setStatus({ tone: 'error', label: 'Wallet', title: 'Connection failed', copy: error.message || 'Please try again.' });
-      hideModal(walletModal);
-    }
-  });
-});
-
+renderDefaultWalletPrompt();
 loadRuntimeConfig();
-
-if (window.ethereum) {
-  window.ethereum.on?.('accountsChanged', (accounts) => {
-    if (!accounts.length) {
-      state.walletAddress = '';
-      state.walletType = '';
-      updateConnectedUi();
-      statusCard.classList.add('hidden');
-      return;
-    }
-    state.walletAddress = accounts[0];
-    updateConnectedUi();
-  });
-}

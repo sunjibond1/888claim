@@ -19,7 +19,8 @@ CLAIMS_PATH = APP_ROOT / 'data' / 'claims.json'
 HOST = os.environ.get('CLAIM888_HOST', '127.0.0.1')
 PORT = int(os.environ.get('CLAIM888_PORT', '8123'))
 BASE_CHAIN_ID = 8453
-WALLETCONNECT_PROJECT_ID = os.environ.get('WALLETCONNECT_PROJECT_ID', '').strip()
+PRIVY_APP_ID = os.environ.get('PRIVY_APP_ID', '').strip()
+PRIVY_CLIENT_ID = os.environ.get('PRIVY_CLIENT_ID', '').strip()
 
 ELIGIBILITY_MAP = load_eligibility_map(XLSX_PATH)
 CLAIM_STORE = ClaimStore(CLAIMS_PATH)
@@ -81,7 +82,8 @@ class ClaimHandler(BaseHTTPRequestHandler):
             return self.serve_file(LOGO_PATH, 'image/svg+xml')
         if path == '/api/config' or path == '/api/config/':
             return json_response(self, {
-                'walletConnectProjectId': WALLETCONNECT_PROJECT_ID,
+                'privyAppId': PRIVY_APP_ID,
+                'privyClientId': PRIVY_CLIENT_ID,
                 'baseChainId': BASE_CHAIN_ID,
             })
         return self.not_found()

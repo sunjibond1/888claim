@@ -16,7 +16,8 @@ exports.handler = async function handler() {
     statusCode: 200,
     headers: { 'content-type': 'application/json; charset=utf-8' },
     body: JSON.stringify({
-      walletConnectProjectId: process.env.WALLETCONNECT_PROJECT_ID || '',
+      privyAppId: process.env.PRIVY_APP_ID || '',
+      privyClientId: process.env.PRIVY_CLIENT_ID || '',
       baseChainId: 8453,
       eligibleCount: Object.keys(eligibility).length,
     }),
