@@ -149,7 +149,7 @@ async function connectWalletConnect() {
   }
 
   const wcNamespace = window['@walletconnect/ethereum-provider'];
-  const EthereumProvider = wcNamespace?.EthereumProvider || wcNamespace?.default;
+  const EthereumProvider = wcNamespace?.EthereumProvider || wcNamespace?.default || wcNamespace;
   if (!EthereumProvider?.init) {
     setStatus({
       tone: 'error',
