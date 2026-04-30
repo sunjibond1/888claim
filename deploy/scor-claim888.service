@@ -1,0 +1,18 @@
+[Unit]
+Description=SCOR Claim888 Fast MVP
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/scor/AI/SCOR
+Environment=CLAIM888_HOST=0.0.0.0
+Environment=CLAIM888_PORT=8123
+# Environment=WALLETCONNECT_PROJECT_ID=replace_me
+ExecStart=/opt/scor/AI/SCOR/website/claim888/scripts/start.sh
+Restart=always
+RestartSec=5
+User=www-data
+Group=www-data
+
+[Install]
+WantedBy=multi-user.target

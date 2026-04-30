@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SCOR Claiming Hub</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Jersey+25&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/claim888/styles.css" />
+    <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.5/dist/ethers.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@walletconnect/ethereum-provider@2.11.0/dist/index.umd.js"></script>
+  </head>
+  <body>
+    <div class="page-shell">
+      <header class="topbar">
+        <a class="brand" href="https://scor.io/" aria-label="SCOR home">
+          <img src="/logo/scor-logo-dark.svg" alt="SCOR" />
+        </a>
+        <button id="headerConnectButton" class="wallet-button">Connect wallet</button>
+      </header>
+
+      <main class="hero">
+        <div class="hero-card">
+          <p class="eyebrow">888 campaign</p>
+          <h1>SCOR Claiming Hub</h1>
+          <p class="subtitle">Connect your wallet to check if you’re eligible for rewards in the 888 campaign.</p>
+          <div class="hero-actions">
+            <button id="mainActionButton" class="primary-button">Connect wallet</button>
+          </div>
+          <div id="statusCard" class="status-card hidden" aria-live="polite"></div>
+        </div>
+      </main>
+
+      <footer class="footer">
+        <div class="footer-socials">
+          <a href="https://x.com/SCORProtocol" target="_blank" rel="noreferrer">X</a>
+          <a href="https://t.me/scor_games_bot/app" target="_blank" rel="noreferrer">Telegram</a>
+          <a href="https://scor.io/discord" target="_blank" rel="noreferrer">Discord</a>
+          <a href="https://docs.scor.io/" target="_blank" rel="noreferrer">Wiki</a>
+        </div>
+        <div class="footer-links">
+          <span>Coming from Telegram?</span>
+          <a href="https://scor.io/" target="_blank" rel="noreferrer">SCOR.IO</a>
+          <a href="https://about.sweet.io/legal/mini-app-terms/" target="_blank" rel="noreferrer">Terms of Use</a>
+          <a href="https://about.sweet.io/legal/mini-app-privacy/" target="_blank" rel="noreferrer">Privacy policy</a>
+          <a href="https://scor.io/help" target="_blank" rel="noreferrer">Help Center</a>
+        </div>
+        <div class="footer-bottom">
+          <p>© 2025 Sweet. All Rights Reserved. SCOR and the SCOR gem logo are the trademarks of SocialSweet, Inc. and are used, under license, to the SCOR Foundation. Sweet and the Sweet pop logo are the registered trademarks of SocialSweet, Inc. Third-party trademarks and logos are the property of their respective owners.</p>
+          <a href="https://sweet.io/" target="_blank" rel="noreferrer">POWERED BY Sweet</a>
+        </div>
+      </footer>
+    </div>
+
+    <div id="walletModal" class="modal hidden" aria-hidden="true">
+      <div class="modal-backdrop" data-close="walletModal"></div>
+      <div class="modal-panel">
+        <button class="modal-close" data-close="walletModal">×</button>
+        <h2>Connect wallet</h2>
+        <p class="modal-copy">Choose your wallet to connect to SCOR Claiming Hub.</p>
+        <div class="wallet-options">
+          <button class="option-button" data-wallet="metamask">MetaMask</button>
+          <button class="option-button" data-wallet="walletconnect">WalletConnect</button>
+          <button class="option-button" data-wallet="base">Base App</button>
+        </div>
+        <p class="modal-note">Network required: Base</p>
+      </div>
+    </div>
+
+    <div id="successModal" class="modal hidden" aria-hidden="true">
+      <div class="modal-backdrop" data-close="successModal"></div>
+      <div class="modal-panel success-panel">
+        <button class="modal-close" data-close="successModal">×</button>
+        <h2>Rewards sent</h2>
+        <p id="successCopy">"0" rewards have been sent to your Master Wallet.</p>
+        <a href="https://docs.scor.io/fun-scor-io/account/my-wallet" target="_blank" rel="noreferrer" class="secondary-link">Learn more about Master Wallet</a>
+      </div>
+    </div>
+
+    <script src="/claim888/wallet-utils.js"></script>
+    <script src="/claim888/app.js"></script>
+  </body>
+</html>

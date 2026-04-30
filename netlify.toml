@@ -1,0 +1,33 @@
+[build]
+  publish = "static"
+  functions = "netlify/functions"
+
+[[redirects]]
+  from = "/api/config"
+  to = "/.netlify/functions/config"
+  status = 200
+
+[[redirects]]
+  from = "/api/claim888/check"
+  to = "/.netlify/functions/check"
+  status = 200
+
+[[redirects]]
+  from = "/api/claim888/claim"
+  to = "/.netlify/functions/claim"
+  status = 200
+
+[[redirects]]
+  from = "/claim888"
+  to = "/"
+  status = 200
+
+[[redirects]]
+  from = "/claim888/*"
+  to = "/:splat"
+  status = 200
+
+[[redirects]]
+  from = "/logo/scor-logo-dark.svg"
+  to = "/scor-logo-dark.svg"
+  status = 200
