@@ -18,3 +18,5 @@ data/claims.json
 
 # macOS
 .DS_Store
+
+*.tgz
